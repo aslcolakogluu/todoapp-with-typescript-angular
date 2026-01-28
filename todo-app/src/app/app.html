@@ -1,33 +1,148 @@
-<div class = "container">
+<div class="container">
   <h1>{{ title }}</h1>
 
-  <div class = "add-todo">
+  <!-- Statistics -->
+  <div class="stats">
+    <div class="stat-item">
+      <span class="stat-number">{{ todos.length }}</span>
+      <span class="stat-label">Total</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">{{ activeTodoCount }}</span>
+      <span class="stat-label">Active</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">{{ completedTodoCount }}</span>
+      <span class="stat-label">Completed</span>
+    </div>
+  </div>
+
+  <!-- Add Todo Form -->
+  <div class="add-todo-section">
     <input
       type="text"
       [(ngModel)]="newTodoTitle"
       placeholder="What needs to be done?"
       (keyup.enter)="addTodo()"
+      class="todo-input"
     />
 
-    <button (click)="addTodo()">ADD</button>
+    <div class="form-row">
+      <select [(ngModel)]="newTodoCategory" class="select-input">
+        <option *ngFor="let cat of categories.slice(1)" [value]="cat">
+          {{ cat }}
+        </option>
+      </select>
 
+      <select [(ngModel)]="newTodoPriority" class="select-input">
+        <option value="high">🔴 High</option>
+        <option value="medium">🟡 Medium</option>
+        <option value="low">🟢 Low</option>
+      </select>
+
+      <input
+        type="date"
+        [(ngModel)]="newTodoDueDate"
+        class="date-input"
+      />
+
+      <button (click)="addTodo()" class="add-button">Add</button>
+    </div>
   </div>
 
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <button
+        *ngFor="let filter of ['all', 'active', 'completed']"
+        (click)="setFilterType(filter)"
+        [class.active]="filterType === filter"
+        class="filter-button"
+      >
+        {{ filter | titlecase }}
+      </button>
+    </div>
+
+    <select [(ngModel)]="selectedCategory" class="category-filter">
+      <option *ngFor="let cat of categories" [value]="cat">
+        {{ cat === 'All' ? 'All Categories' : cat }}
+      </option>
+    </select>
+
+    <input
+      type="text"
+      [(ngModel)]="searchText"
+      placeholder="🔍 Search todos..."
+      class="search-input"
+    />
+  </div>
+
+  <!-- Todo List -->
   <ul class="todo-list">
-    <li *ngFor="let todo of todos" [class.completed]="todo.completed">
+    <li
+      *ngFor="let todo of filteredTodos"
+      [class.completed]="todo.completed"
+      [class.priority-high]="todo.priority === 'high'"
+      [class.priority-medium]="todo.priority === 'medium'"
+      [class.priority-low]="todo.priority === 'low'"
+      [class.overdue]="isOverdue(todo)"
+      class="todo-item"
+    >
       <input
         type="checkbox"
         [checked]="todo.completed"
         (change)="toggleTodo(todo)"
+        class="checkbox"
       />
 
-      <span>{{ todo.title }}</span>
-      <button class="delete-btn" (click)="deleteTodo(todo.id)">DELETE</button>
+      <!-- Display Mode -->
+      <div *ngIf="editingId !== todo.id" class="todo-content">
+        <div class="todo-main">
+          <span class="todo-title">{{ todo.title }}</span>
+          <div class="todo-badges">
+            <span class="badge category-badge">{{ todo.category }}</span>
+            <span class="badge priority-badge priority-{{ todo.priority }}">
+              {{ todo.priority }}
+            </span>
+            <span *ngIf="todo.dueDate" class="badge date-badge"
+                  [class.overdue-badge]="isOverdue(todo)">
+              {{ todo.dueDate | date:'MMM d' }}
+            </span>
+          </div>
+        </div>
+      </div>
 
+      <!-- Edit Mode -->
+      <div *ngIf="editingId === todo.id" class="edit-mode">
+        <input
+          type="text"
+          [(ngModel)]="editTitle"
+          (keyup.enter)="saveEdit(todo)"
+          (keyup.escape)="cancelEdit()"
+          class="edit-input"
+        />
+        <button (click)="saveEdit(todo)" class="save-btn">✓</button>
+        <button (click)="cancelEdit()" class="cancel-btn">✗</button>
+      </div>
+
+      <!-- Actions -->
+      <div class="todo-actions" *ngIf="editingId !== todo.id">
+        <button (click)="startEdit(todo)" class="edit-btn">✏️</button>
+        <button (click)="deleteTodo(todo.id)" class="delete-btn">🗑️</button>
+      </div>
     </li>
   </ul>
 
-  <p *ngIf="todos.length === 0" class="empty-message">
-    No todos yet.Add one above!
-  </p>
+  <!-- Empty State -->
+  <div *ngIf="filteredTodos.length === 0" class="empty-state">
+    <p *ngIf="todos.length === 0">No todos yet. Add one above! 🎯</p>
+    <p *ngIf="todos.length > 0">No todos match your filters. 🔍</p>
+  </div>
+
+  <!-- Clear Completed -->
+  <div class="footer-actions" *ngIf="completedTodoCount > 0">
+    <button (click)="clearCompleted()" class="clear-button">
+      Clear {{ completedTodoCount }} completed todo{{ completedTodoCount > 1 ? 's' : '' }}
+    </button>
+  </div>
 </div>
